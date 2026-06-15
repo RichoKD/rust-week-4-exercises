@@ -1,3 +1,4 @@
+use clap::Parser;
 use std::str::FromStr;
 use thiserror::Error;
 
@@ -133,9 +134,36 @@ pub struct OutPoint {
 // Simple CLI argument parser
 pub fn parse_cli_args(args: &[String]) -> Result<CliCommand, BitcoinError> {
     // TODO: Match args to "send" or "balance" commands and parse required arguments
-    todo!()
+    if args.is_empty() {
+        return Err(BitcoinError::ParseError(
+            "No arguments provided".to_string(),
+        ));
+    }
+
+    let command = args[0].as_str();
+    match command {
+        "balance" => Ok(CliCommand::Balance),
+        "send" => {
+            if args.len() < 3 {
+                return Err(BitcoinError::ParseError(
+                    "Missing arguments for send".to_string(),
+                ));
+            }
+
+            let amount = args[1]
+                .parse::<u64>()
+                .map_err(|_| BitcoinError::InvalidAmount)?;
+
+            Ok(CliCommand::Send {
+                amount,
+                address: args[2].clone(),
+            })
+        }
+        _ => Err(BitcoinError::ParseError("Invalid Command".to_string())),
+    }
 }
 
+#[derive(Debug, PartialEq, Eq)]
 pub enum CliCommand {
     Send { amount: u64, address: String },
     Balance,
