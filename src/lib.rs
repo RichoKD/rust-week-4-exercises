@@ -1,5 +1,3 @@
-use clap::Parser;
-use std::str::FromStr;
 use thiserror::Error;
 
 // Custom errors for Bitcoin operations
@@ -174,16 +172,32 @@ impl TryFrom<&[u8]> for LegacyTransaction {
     type Error = BitcoinError;
 
     fn try_from(data: &[u8]) -> Result<Self, Self::Error> {
-        // TODO: Parse binary data into a LegacyTransaction
-        // Minimum length is 10 bytes (4 version + 4 inputs count + 4 lock_time)
-        todo!()
+        // Minimum length is 16 bytes (4 version + 4 inputs count + 4 outputs count + 4 lock_time)
+        if data.len() < 16 {
+            return Err(BitcoinError::InvalidTransaction);
+        }
+
+        let version = i32::from_le_bytes([data[0], data[1], data[2], data[3]]);
+        let inputs_count = u32::from_le_bytes([data[4], data[5], data[6], data[7]]);
+        let outputs_count = u32::from_le_bytes([data[8], data[9], data[10], data[11]]);
+        let lock_time = u32::from_le_bytes([data[12], data[13], data[14], data[15]]);
+
+        Ok(LegacyTransaction {
+            version,
+            inputs: Vec::with_capacity(inputs_count as usize),
+            outputs: Vec::with_capacity(outputs_count as usize),
+            lock_time,
+        })
     }
 }
 
 // Custom serialization for transaction
 impl BitcoinSerialize for LegacyTransaction {
     fn serialize(&self) -> Vec<u8> {
-        // TODO: Serialize only version and lock_time (simplified)
-        todo!()
+        // Serialize only version and lock_time (simplified)
+        let mut bytes = Vec::with_capacity(8);
+        bytes.extend_from_slice(&self.version.to_le_bytes());
+        bytes.extend_from_slice(&self.lock_time.to_le_bytes());
+        bytes
     }
 }
